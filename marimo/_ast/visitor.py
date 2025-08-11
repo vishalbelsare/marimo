@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import ast
-import itertools
 import sys
 from collections import defaultdict
 from copy import deepcopy
@@ -621,21 +620,9 @@ class ScopedVisitor(ast.NodeVisitor):
                     return node
 
                 for statement in statements:
-                    tables: set[str] = set()
                     from_targets: list[str] = []
                     # Parse the refs and defs of each statement
                     try:
-                        tables = duckdb.get_table_names(statement.query)
-                    except (duckdb.ProgrammingError, duckdb.IOException):
-                        LOGGER.debug(
-                            "Error parsing SQL statement: %s", statement.query
-                        )
-                    except BaseException as e:
-                        LOGGER.warning("Unexpected duckdb error %s", e)
-                    try:
-                        # TODO(akshayka): more comprehensive parsing
-                        # of the statement -- schemas can show up in
-                        # joins, queries, ...
                         from_targets = find_sql_refs(statement.query)
                     except (duckdb.ProgrammingError, duckdb.IOException):
                         LOGGER.debug(
@@ -644,7 +631,7 @@ class ScopedVisitor(ast.NodeVisitor):
                     except BaseException as e:
                         LOGGER.warning("Unexpected duckdb error %s", e)
 
-                    for name in itertools.chain(tables, from_targets):
+                    for name in from_targets:
                         # Name (table, db) may be a URL or something else that
                         # isn't a Python variable
                         if name.isidentifier():
